@@ -1,0 +1,188 @@
+package org.openapitools.model;
+
+import java.net.URI;
+import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import jakarta.annotation.Generated;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.openapitools.model.SubscriptionRequestAttributes;
+import org.springframework.lang.Nullable;
+import org.openapitools.jackson.nullable.JsonNullable;
+import java.time.OffsetDateTime;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
+
+import java.util.*;
+
+
+/**
+ * [Subscription-api request body]
+ */
+
+@Schema(name = "SubscriptionRequest", description = "[Subscription-api request body]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-04-17T15:26:51.744576900+01:00[Africa/Casablanca]", comments = "Generator version: 7.12.0")
+public class SubscriptionRequest {
+
+  private String merchantId;
+
+  @Valid
+  private List<@Valid SubscriptionRequestAttributes> subscriptions = new ArrayList<>();
+
+  private @Nullable String subMerchantName;
+
+  private Integer acquirerSegmentId;
+
+  public SubscriptionRequest() {
+    super();
+  }
+
+  /**
+   * Constructor with only required parameters
+   */
+  public SubscriptionRequest(String merchantId, List<@Valid SubscriptionRequestAttributes> subscriptions, Integer acquirerSegmentId) {
+    this.merchantId = merchantId;
+    this.subscriptions = subscriptions;
+    this.acquirerSegmentId = acquirerSegmentId;
+  }
+
+  public SubscriptionRequest merchantId(String merchantId) {
+    this.merchantId = merchantId;
+    return this;
+  }
+
+  /**
+   * [Acquirer assigns the merchant ID. This field must contain a valid VAU Merchant ID.]
+   * @return merchantId
+   */
+  @NotNull
+  @Size(min = 12, max = 12)
+  @Schema(name = "merchantId", example = "000000705854", description = "[Acquirer assigns the merchant ID. This field must contain a valid VAU Merchant ID.]", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("merchantId")
+  public String getMerchantId() {
+    return merchantId;
+  }
+
+  public void setMerchantId(String merchantId) {
+    this.merchantId = merchantId;
+  }
+
+  public SubscriptionRequest subscriptions(List<@Valid SubscriptionRequestAttributes> subscriptions) {
+    this.subscriptions = subscriptions;
+    return this;
+  }
+
+  public SubscriptionRequest addSubscriptionsItem(SubscriptionRequestAttributes subscriptionsItem) {
+    if (this.subscriptions == null) {
+      this.subscriptions = new ArrayList<>();
+    }
+    this.subscriptions.add(subscriptionsItem);
+    return this;
+  }
+
+  /**
+   * [List of Inquiries]
+   * @return subscriptions
+   */
+  @NotNull @Valid 
+  @Schema(name = "subscriptions", description = "[List of Inquiries]", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("subscriptions")
+  public List<@Valid SubscriptionRequestAttributes> getSubscriptions() {
+    return subscriptions;
+  }
+
+  public void setSubscriptions(List<@Valid SubscriptionRequestAttributes> subscriptions) {
+    this.subscriptions = subscriptions;
+  }
+
+  public SubscriptionRequest subMerchantName(String subMerchantName) {
+    this.subMerchantName = subMerchantName;
+    return this;
+  }
+
+  /**
+   * [If inquiry is submitted by a merchant, then this field must be empty. If inquiry is submitted by a third-party aggregator on behalf of a merchant, then this field must be populated with the sub-merchant name. Acquirers and processors must pass the value to Visa. No special characters are allowed.]
+   * @return subMerchantName
+   */
+  @Size(min = 0, max = 20) 
+  @Schema(name = "subMerchantName", example = "SUB-MERCHANT-NAME", description = "[If inquiry is submitted by a merchant, then this field must be empty. If inquiry is submitted by a third-party aggregator on behalf of a merchant, then this field must be populated with the sub-merchant name. Acquirers and processors must pass the value to Visa. No special characters are allowed.]", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("subMerchantName")
+  public String getSubMerchantName() {
+    return subMerchantName;
+  }
+
+  public void setSubMerchantName(String subMerchantName) {
+    this.subMerchantName = subMerchantName;
+  }
+
+  public SubscriptionRequest acquirerSegmentId(Integer acquirerSegmentId) {
+    this.acquirerSegmentId = acquirerSegmentId;
+    return this;
+  }
+
+  /**
+   * [This field must contain a valid VAU Acquirer Segment ID.]
+   * @return acquirerSegmentId
+   */
+  @NotNull 
+  @Schema(name = "acquirerSegmentId", example = "2", description = "[This field must contain a valid VAU Acquirer Segment ID.]", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("acquirerSegmentId")
+  public Integer getAcquirerSegmentId() {
+    return acquirerSegmentId;
+  }
+
+  public void setAcquirerSegmentId(Integer acquirerSegmentId) {
+    this.acquirerSegmentId = acquirerSegmentId;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    SubscriptionRequest subscriptionRequest = (SubscriptionRequest) o;
+    return Objects.equals(this.merchantId, subscriptionRequest.merchantId) &&
+        Objects.equals(this.subscriptions, subscriptionRequest.subscriptions) &&
+        Objects.equals(this.subMerchantName, subscriptionRequest.subMerchantName) &&
+        Objects.equals(this.acquirerSegmentId, subscriptionRequest.acquirerSegmentId);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(merchantId, subscriptions, subMerchantName, acquirerSegmentId);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("class SubscriptionRequest {\n");
+    sb.append("    merchantId: ").append(toIndentedString(merchantId)).append("\n");
+    sb.append("    subscriptions: ").append(toIndentedString(subscriptions)).append("\n");
+    sb.append("    subMerchantName: ").append(toIndentedString(subMerchantName)).append("\n");
+    sb.append("    acquirerSegmentId: ").append(toIndentedString(acquirerSegmentId)).append("\n");
+    sb.append("}");
+    return sb.toString();
+  }
+
+  /**
+   * Convert the given object to string with each line indented by 4 spaces
+   * (except the first line).
+   */
+  private String toIndentedString(Object o) {
+    if (o == null) {
+      return "null";
+    }
+    return o.toString().replace("\n", "\n    ");
+  }
+}
+
