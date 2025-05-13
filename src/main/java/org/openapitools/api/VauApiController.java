@@ -1,6 +1,7 @@
 package org.openapitools.api;
 
 import org.openapitools.model.*;
+import org.openapitools.repository.PanPoolRepository;
 import org.openapitools.service.MerchantService;
 import org.openapitools.service.StopAdviceService;
 import org.openapitools.service.SubscriptionService;
@@ -9,8 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.openapitools.model.Subscription;
 
@@ -33,6 +33,8 @@ public class VauApiController implements VauApi {
     private SubscriptionService subscriptionService;
     @Autowired
     private StopAdviceService stopAdviceService;
+    @Autowired
+    private PanPoolRepository panPoolRepository;
 
 
     private final NativeWebRequest request;
@@ -381,6 +383,201 @@ public class VauApiController implements VauApi {
         return ResponseEntity.ok(response);
     }
 
+//    @GetMapping("/vau/issuer-api/v1/search-update")
+//    public ResponseEntity<Map<String, Object>> searchUpdateOnly(@RequestParam String pan) {
+//        Optional<Subscription> optional = subscriptionService.getByPan(pan);
+//
+//        if (optional.isEmpty()) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+//                    .body(Map.of("error", "PAN not found"));
+//        }
+//
+//        Subscription sub = optional.get();
+//        Map<String, Object> result = new HashMap<>();
+//        result.put("pan", sub.getCardholderAccountNumber());
+//        result.put("oldExpiry", sub.getExpirationDate());
+//
+//        if (sub.getNewCardholderAccountNumber() != null &&
+//                !sub.getNewCardholderAccountNumber().equals(sub.getCardholderAccountNumber())) {
+//
+//            result.put("updated", true);
+//            result.put("newPan", sub.getNewCardholderAccountNumber());
+//            result.put("newExpiry", sub.getNewExpirationDate());
+//
+//        } else {
+//            boolean panAvailable = panPoolRepository.findFirstByUsedFalse().isPresent();
+//            result.put("updated", false);
+//
+//            if (panAvailable) {
+//                result.put("message", "Update not yet applied.");
+//            } else {
+//                result.put("message", "No available PANs in the pool.");
+//            }
+//        }
+//
+//        return ResponseEntity.ok(result);
+//    }
+
+
+    @GetMapping("/vau/issuer-api/v1/search-update")
+    public ResponseEntity<Map<String, Object>> searchUpdateWithAgeCheck(@RequestParam String pan) {
+        Optional<Subscription> optional = subscriptionService.getByPan(pan);
+
+        if (optional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "PAN not found"));
+        }
+
+        Subscription sub = optional.get();
+        Map<String, Object> result = new HashMap<>();
+        result.put("pan", sub.getCardholderAccountNumber());
+        result.put("oldExpiry", sub.getExpirationDate());
+
+        // 👇 Parse expiration date YYMM → LocalDate
+        String expiry = sub.getExpirationDate();
+        if (expiry.length() != 4) {
+            result.put("updated", false);
+            result.put("message", "Invalid expiration date format.");
+            return ResponseEntity.ok(result);
+        }
+
+        int year = 2000 + Integer.parseInt(expiry.substring(0, 2));
+        int month = Integer.parseInt(expiry.substring(2, 4));
+        LocalDate expirationDate = LocalDate.of(year, month, 1);
+
+        boolean dueForUpdate = !expirationDate.isAfter(LocalDate.now());
+
+        if (!dueForUpdate) {
+            result.put("updated", false);
+            result.put("message", "PAN is not yet due for update (still valid).");
+            return ResponseEntity.ok(result);
+        }
+
+
+        // 👇 Already updated?
+        if (sub.getNewCardholderAccountNumber() != null &&
+                !sub.getNewCardholderAccountNumber().equals(sub.getCardholderAccountNumber())) {
+
+            result.put("updated", true);
+            result.put("newPan", sub.getNewCardholderAccountNumber());
+            result.put("newExpiry", sub.getNewExpirationDate());
+            return ResponseEntity.ok(result);
+        }
+
+        // 👇 Try to assign from PAN pool
+        Optional<PanPool> availablePan = panPoolRepository.findFirstByUsedFalse();
+        if (availablePan.isEmpty()) {
+            result.put("updated", false);
+            result.put("message", "No available PANs in the pool.");
+            return ResponseEntity.ok(result);
+        }
+
+        // 👇 Apply update now
+        PanPool newPan = availablePan.get();
+        newPan.setUsed(true);
+        panPoolRepository.save(newPan);
+
+        sub.setNewCardholderAccountNumber(newPan.getPan());
+        sub.setNewExpirationDate(newPan.getExpiry());
+        sub.setCardholderAccountNumber(newPan.getPan());
+        sub.setExpirationDate(newPan.getExpiry());
+        sub.setSubscriptionDate(LocalDate.now());
+
+        subscriptionService.save(sub);
+
+        result.put("updated", true);
+        result.put("newPan", newPan.getPan());
+        result.put("newExpiry", newPan.getExpiry());
+
+        return ResponseEntity.ok(result);
+    }
+
+
+
+//    @GetMapping("/vau/issuer-api/v1/search-update")
+//    public ResponseEntity<Map<String, Object>> searchAndApplyUpdate(@RequestParam String pan) {
+//        Optional<Subscription> optional = subscriptionService.getByPan(pan);
+//
+//        if (optional.isEmpty()) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "PAN not found"));
+//        }
+//
+//        Subscription sub = optional.get();
+//        Map<String, Object> result = new HashMap<>();
+//
+//        result.put("pan", sub.getCardholderAccountNumber());
+//        result.put("oldExpiry", sub.getExpirationDate());
+//
+//        if (sub.getNewCardholderAccountNumber() != null) {
+//            // Already updated
+//            result.put("updated", true);
+//            result.put("newPan", sub.getNewCardholderAccountNumber());
+//            result.put("newExpiry", sub.getNewExpirationDate());
+//        } else {
+//            Optional<PanPool> panOpt = panPoolRepository.findFirstByUsedFalse();
+//
+//            if (panOpt.isPresent()) {
+//                PanPool newPan = panOpt.get();
+//                newPan.setUsed(true);
+//                panPoolRepository.save(newPan);
+//
+//                sub.setNewCardholderAccountNumber(newPan.getPan());
+//                sub.setNewExpirationDate(newPan.getExpiry());
+//                sub.setCardholderAccountNumber(newPan.getPan());
+//                sub.setExpirationDate(newPan.getExpiry());
+//                sub.setSubscriptionDate(LocalDate.now());
+//
+//                subscriptionService.save(sub);
+//
+//                result.put("updated", true);
+//                result.put("newPan", newPan.getPan());
+//                result.put("newExpiry", newPan.getExpiry());
+//            } else {
+//                result.put("updated", false);
+//                result.put("error", "No available PANs in the pool");
+//            }
+//        }
+//
+//        return ResponseEntity.ok(result);
+//    }
+
+//    @PostMapping("/vau/issuer-api/v1/apply-update")
+//    public ResponseEntity<?> applyUpdate(@RequestParam String pan) {
+//        Optional<Subscription> optional = subscriptionService.getByPan(pan);
+//
+//        if (optional.isEmpty()) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("PAN not found");
+//        }
+//
+//        Subscription sub = optional.get();
+//
+//        if (sub.getNewCardholderAccountNumber() != null) {
+//            return ResponseEntity.ok("Update already applied.");
+//        }
+//
+//        Optional<PanPool> panOpt = panPoolRepository.findFirstByUsedFalse();
+//
+//        if (panOpt.isEmpty()) {
+//            return ResponseEntity.status(HttpStatus.CONFLICT).body("No available PANs in pool.");
+//        }
+//
+//        PanPool newPan = panOpt.get();
+//        newPan.setUsed(true);
+//        panPoolRepository.save(newPan);
+//
+//        sub.setNewCardholderAccountNumber(newPan.getPan());
+//        sub.setNewExpirationDate(newPan.getExpiry());
+//        sub.setCardholderAccountNumber(newPan.getPan());
+//        sub.setExpirationDate(newPan.getExpiry());
+//        sub.setSubscriptionDate(LocalDate.now());
+//
+//        subscriptionService.save(sub);
+//
+//        return ResponseEntity.ok("✅ PAN update applied successfully.");
+//    }
+
+
+    @PostMapping("/vau/issuer-api/v1/updates")
     @Override
     public ResponseEntity<OutboundResponse> mockAccountUpdateResponse(
             @Valid @RequestBody EncryptedPayload encryptedPayload,
@@ -398,16 +595,34 @@ public class VauApiController implements VauApi {
 
         List<AccountUpdatesResponse> updates = new ArrayList<>();
         for (Subscription sub : subscriptionService.findAll()) {
-            AccountUpdatesResponse u = new AccountUpdatesResponse();
-            u.setResponseCode("SUCCESS");
-            u.setOldCardholderAccountNumber(sub.getCardholderAccountNumber());
-            u.setOldExpirationDate(sub.getExpirationDate());
-            u.setAcquirerOrMerchantProprietaryInfo(
-                    sub.getAcquirerOrMerchantProprietaryInfo());
-            updates.add(u);
+            AccountUpdatesResponse update = new AccountUpdatesResponse();
+            update.setResponseCode("SUCCESS");
+            update.setOldCardholderAccountNumber(sub.getCardholderAccountNumber());
+            update.setOldExpirationDate(sub.getExpirationDate());
+            update.setAcquirerOrMerchantProprietaryInfo(sub.getAcquirerOrMerchantProprietaryInfo());
+
+            // Only assign a new PAN if the subscription has not been updated yet
+            if (sub.getNewCardholderAccountNumber() == null || sub.getNewExpirationDate() == null) {
+                Optional<PanPool> availablePan = panPoolRepository.findFirstByUsedFalse();
+                if (availablePan.isPresent()) {
+                    PanPool pan = availablePan.get();
+                    sub.setNewCardholderAccountNumber(pan.getPan());
+                    sub.setNewExpirationDate(pan.getExpiry());
+                    pan.setUsed(true);
+                    panPoolRepository.save(pan);
+                    sub.setCardholderAccountNumber(pan.getPan());
+                    sub.setExpirationDate(pan.getExpiry());
+                    sub.setSubscriptionDate(LocalDate.now());
+                    subscriptionService.save(sub);
+                }
+            }
+
+            update.setNewCardholderAccountNumber(sub.getNewCardholderAccountNumber());
+            update.setNewExpirationDate(sub.getNewExpirationDate());
+
+            updates.add(update);
         }
         response.setAccountUpdates(updates);
-
         return ResponseEntity.ok(response);
     }
 }

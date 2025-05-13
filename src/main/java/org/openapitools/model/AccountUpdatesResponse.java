@@ -90,6 +90,34 @@ public class AccountUpdatesResponse {
     this.oldCardholderAccountNumber = oldCardholderAccountNumber;
     return this;
   }
+  public static final String JSON_PROPERTY_NEW_CARDHOLDER_ACCOUNT_NUMBER = "newCardholderAccountNumber";
+  private String newCardholderAccountNumber;
+
+  public static final String JSON_PROPERTY_NEW_EXPIRATION_DATE = "newExpirationDate";
+  private String newExpirationDate;
+
+  // Getter and Setter for newCardholderAccountNumber
+  @JsonProperty(JSON_PROPERTY_NEW_CARDHOLDER_ACCOUNT_NUMBER)
+  public String getNewCardholderAccountNumber() {
+    return newCardholderAccountNumber;
+  }
+
+  @JsonProperty(JSON_PROPERTY_NEW_CARDHOLDER_ACCOUNT_NUMBER)
+  public void setNewCardholderAccountNumber(String newCardholderAccountNumber) {
+    this.newCardholderAccountNumber = newCardholderAccountNumber;
+  }
+
+  // Getter and Setter for newExpirationDate
+  @JsonProperty(JSON_PROPERTY_NEW_EXPIRATION_DATE)
+  public String getNewExpirationDate() {
+    return newExpirationDate;
+  }
+
+  @JsonProperty(JSON_PROPERTY_NEW_EXPIRATION_DATE)
+  public void setNewExpirationDate(String newExpirationDate) {
+    this.newExpirationDate = newExpirationDate;
+  }
+
 
   /**
    * [Old Cardholder Account Number.]
